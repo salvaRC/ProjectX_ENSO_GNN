@@ -44,7 +44,7 @@ def heatmap_of_edges(file_path=None, model=None, args=None, index="ONI", resolut
     model.eval()
 
     if reader is not None:
-        ssta = read_ssta(index, get_mask=False, stack_lon_lat=True, resolution=resolution, reader=reader)
+        ssta = read_ssta(index, data_dir, get_mask=False, stack_lon_lat=True, resolution=resolution, reader=reader)
         coordinates = ssta.indexes["cord"]
         lats, lons = ssta.attrs["Lats"], ssta.attrs["Lons"]
     else:
