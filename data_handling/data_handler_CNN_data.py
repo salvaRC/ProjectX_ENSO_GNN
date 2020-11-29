@@ -75,7 +75,7 @@ class IndexLoader:
                  verbose=False,
                  test_set="GODAS"
                  ):
-        from enso.utils import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
+        from utils import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
         self.device = args.device
         self.horizon = args.horizon
         self.window = args.window
@@ -94,12 +94,14 @@ class IndexLoader:
                                         lon_max=args.lon_max, lat_min=args.lat_min, lat_max=args.lat_max,
                                         data_dir=data_dir, use_heat_content=args.use_heat_content,
                                         return_mask=False)
+            transfer = False
         if args.use_heat_content or test_set == "GODAS":
             self.dataset = "GODAS"
             if verbose:
                 print("Testing on unseen GODAS data...")
             self.test = torch.tensor(np.array(GODAS[0])).float(), torch.tensor(GODAS[1]).float()
             self.semantic_time_steps = GODAS[0].attrs["time"]
+
         else:
             self.dataset = "ERSSTv5"
             if verbose:
@@ -116,7 +118,7 @@ class IndexLoader:
             _, self.mask = get_index_mask(flattened_ssta, args.index, flattened_too=True, is_data_flattened=True)
             self.test = self._batchify(np.array(flattened_ssta))
 
-    def _batchify(self, data):
+    def _batchify_index(self, data):
         Y_matrix = data[self.window + self.horizon - 1:]  # horizon = #time steps predicted in advance
         timesteps = Y_matrix.shape[0]
 
@@ -127,6 +129,21 @@ class IndexLoader:
             end = start + self.window
             X[start, 0, :, :] = torch.from_numpy(data[start:end, :])
             Y[start] = torch.tensor(np.mean(Y_i[self.mask]))
+        return [X, Y]
+
+
+    def _batchify(self, data):
+        Y_matrix = data[self.window + self.horizon - 1:, :]  # horizon = #time steps predicted in advance
+        timesteps = Y_matrix.shape[0]
+
+        X = torch.zeros((timesteps, self.window, self.n_nodes))
+        Y = torch.zeros((timesteps, self.n_nodes))
+
+        for start, Y_i in enumerate(Y_matrix):
+            end = start + self.window
+            X[start, :, :] = torch.from_numpy(data[start:end, :])
+            Y[start, :] = torch.tensor(Y_i)
+
         return [X, Y]
 
     def get_batches(self, inputs, targets, batch_size, shuffle=True):

@@ -1,7 +1,6 @@
 import torch.optim as optim
-import math
-from MTGNN.net import *
-import MTGNN.data_handler as util
+from GNN_exp1.net import *
+import data_handling.data_handler as util
 
 class Trainer():
     def __init__(self, model, lrate, wdecay, clip, step_size, seq_out_len, scaler, device, cl=True):

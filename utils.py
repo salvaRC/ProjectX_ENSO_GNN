@@ -1,7 +1,22 @@
 import numpy as np
 import xarray as xa
 from ninolearn.IO.read_processed import data_reader
+from sklearn.metrics import mean_squared_error
 
+def rmse(y, preds):
+    """
+    The root-mean-squarred error (RMSE) for a given observation and prediction.
+
+    :type y: array_like
+    :param y: The true observation.
+
+    :type pred: array_like
+    :param pred: The prediction.
+
+    :rtype: float
+    :return: The RMSE value
+    """
+    return np.sqrt(mean_squared_error(y, preds))
 
 def cord_mask(data: xa.DataArray, is_flattened=False, flattened_too=False, lat=(-5, 5), lon=(190, 240)):
     """
@@ -92,7 +107,7 @@ def check_chosen_coordinates(index, lon_min=190, lon_max=240, lat_min=-5, lat_ma
         raise ValueError("Unknown index")
 
 
-def read_ssta(index, get_mask=False, stack_lon_lat=True, resolution=2.5, dataset="ERSSTv5", fill_nan=0,
+def read_ssta(index, data_dir, get_mask=False, stack_lon_lat=True, resolution=2.5, dataset="ERSSTv5", fill_nan=0,
               start_date='1871-01', end_date='2019-12',
               lon_min=190, lon_max=240,
               lat_min=-5, lat_max=5,
@@ -119,7 +134,8 @@ def read_ssta(index, get_mask=False, stack_lon_lat=True, resolution=2.5, dataset
         raise ValueError("Unknown index")
 
     if reader is None:
-        reader = data_reader(startdate=start_date, enddate=end_date,
+        reader = data_reader(data_dir=data_dir,
+                             startdate=start_date, enddate=end_date,
                              lon_min=lon_min, lon_max=lon_max,
                              lat_min=lat_min, lat_max=lat_max)
         check_chosen_coordinates(index, lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max)
