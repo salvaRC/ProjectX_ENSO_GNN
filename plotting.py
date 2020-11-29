@@ -81,9 +81,12 @@ def heatmap_of_edges(file_path=None, model=None, args=None, index="ONI", resolut
 
 
     fig = plt.figure()
-    gs = fig.add_gridspec(2, 1)
     cm = 180
-    ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree(central_longitude=cm))
+    if only_towards_oni_region:
+        ax1 = plt.axes(projection=ccrs.PlateCarree(central_longitude=cm))
+    else:
+        gs = fig.add_gridspec(2, 1)
+        ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree(central_longitude=cm))
 
     minlon = -180 + cm
     maxlon = +179 + cm
@@ -100,16 +103,19 @@ def heatmap_of_edges(file_path=None, model=None, args=None, index="ONI", resolut
 
     for ax, heat in loop_over:
         if plot_heatmap:
-            cb = ax.pcolormesh(lons, lats, heat, cmap="Reds", transform=ccrs.PlateCarree())
+            im = ax.pcolormesh(lons, lats, heat, cmap="Reds", transform=ccrs.PlateCarree())
+
+            plt.colorbar(im, ax=ax, shrink=0.35)
         else:
-            cb = ax.contourf(lons, lats, heat, transform=ccrs.PlateCarree(), alpha=0.85, cmap="Reds", levels=100)
+            im = ax.contourf(lons, lats, heat, transform=ccrs.PlateCarree(), alpha=0.85, cmap="Reds", levels=100)
+            fig.colorbar(im, ax=ax)
 
         '''        map = Basemap(projection='cyl', llcrnrlat=-55, urcrnrlat=60, resolution='c', llcrnrlon=0, urcrnrlon=380, ax=ax)
         map.drawcoastlines(linewidth=0.2)
         map.drawparallels(np.arange(-90., 90., 30.), labels=[1, 0, 0, 0], fontsize=6.5, color='grey', linewidth=0.2)
         map.drawmeridians(np.arange(0., 380., 60.), labels=[0, 0, 0, 1], fontsize=6.5, color='grey', linewidth=0.2)
         '''
-        fig.colorbar(cb, ax=ax)
+
 
     ax1.coastlines()
     if not only_towards_oni_region:
