@@ -107,7 +107,8 @@ class IndexLoader:
             if verbose:
                 print("Testing on unseen ERSSTv5 data...")
 
-            flattened_ssta = read_ssta(index=args.index, resolution=args.resolution, stack_lon_lat=True,
+            flattened_ssta = read_ssta(data_dir=args.data_dir,index=args.index,
+                                       resolution=args.resolution, stack_lon_lat=True,
                                        start_date=start_date, end_date=end_date,  # end date can be anything for eval.
                                        lon_min=args.lon_min, lon_max=args.lon_max,
                                        lat_min=args.lat_min, lat_max=args.lat_max)
