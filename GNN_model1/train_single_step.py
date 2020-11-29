@@ -112,7 +112,7 @@ def train(data, XX, YY, model, criterion, optim, args):
 
 
 def main(args, adj=None, train_dates=("1871-01", "1972-12"), val_dates=("1973-01", "1983-12"),
-         test_dates=("1984-01", "2020-09")):
+         test_dates=("1984-01", "2020-08")):
     device = torch.device(args.device)
     args.device = device
     torch.set_num_threads(3)
