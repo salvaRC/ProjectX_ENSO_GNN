@@ -1,0 +1,1 @@
+In this subdirectory you should put the ERSSTv5 SSTA dataset.
