@@ -7,9 +7,9 @@ import torch
 import torch.nn as nn
 from scipy.stats import pearsonr
 
-from GNN_exp1.net import gtnet
+from GNN_model1.net import gtnet
 from data_handling.data_handler import DataLoaderS
-from GNN_exp1.trainer import Optim
+from GNN_model1.trainer import Optim
 from utils import rmse
 
 

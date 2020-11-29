@@ -1,5 +1,5 @@
 import torch.optim as optim
-from GNN_exp1.net import *
+from GNN_model1.net import *
 import data_handling.data_handler as util
 
 class Trainer():

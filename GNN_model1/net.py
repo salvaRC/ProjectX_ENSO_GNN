@@ -1,4 +1,4 @@
-from GNN_exp1.layer import *
+from GNN_model1.layer import *
 
 
 class gtnet(nn.Module):
