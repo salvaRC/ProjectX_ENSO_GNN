@@ -2,7 +2,7 @@ import argparse
 
 
 data_dir = r'C:/Users/salva/OneDrive/Documentos/Projects/ProjectX/Data/'
-data_dir = r'../ENSO_GNN/data/'
+#data_dir = r'../Data/'
 
 def get_argparser(experiment="ersstv5"):
     """
@@ -49,7 +49,7 @@ def get_argparser(experiment="ersstv5"):
                         help='whether to  use PReLU in the graph learning module')
 
     parser.add_argument('--batch_size', type=int, default=8, help='batch size')
-    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
+    parser.add_argument('--lr', type=float, default=6e-5, help='learning rate')
     parser.add_argument('--weight_decay', type=float, default=0.00001, help='weight decay rate')
 
     parser.add_argument('--clip', type=int, default=5, help='clip')

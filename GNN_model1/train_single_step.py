@@ -1,17 +1,16 @@
-import argparse
 import math
 import time
 import numpy as np
 
 import torch
 import torch.nn as nn
+from data_handling.data_handler_CNN_data import IndexLoader
 from scipy.stats import pearsonr
 
 from GNN_model1.net import gtnet
-from data_handling.data_handler import DataLoaderS
 from GNN_model1.trainer import Optim
+from data_handling.data_handler import DataLoaderS
 from utils import rmse
-
 
 
 def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds=False):
@@ -41,7 +40,7 @@ def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds
         else:
             preds = torch.cat((preds, output))
             Ytrue = torch.cat((Ytrue, Y))
-        total_loss += evaluateL2(output, Y ).item()
+        total_loss += evaluateL2(output, Y).item()
         total_loss_l1 += evaluateL1(output, Y).item()
         n_samples += (output.size(0) * num_target_nodes)
         i += 1
@@ -72,51 +71,6 @@ def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds
     else:
         return rse, rae, correlation, oni_stats
 
-def evaluate_index(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds=False):
-    model.eval()
-    mask = args.mask
-    num_target_nodes = np.count_nonzero(mask)
-    total_loss = 0
-    total_loss_l1 = 0
-    n_samples = 0
-    preds = None
-    Ytrue = None
-
-    i = 0
-    for X, Y in data.get_batches(XX, YY, args.batch_size, shuffle=False):
-        X = torch.unsqueeze(X, dim=1).squeeze(dim=2)
-        X = X.transpose(2, 3)
-        with torch.no_grad():
-            output = model(X)
-        output = torch.squeeze(output)
-        if len(output.shape) == 1:
-            output = output.unsqueeze(dim=0)
-        output = torch.mean(output[:, mask], axis=1)
-        if preds is None:
-            preds = output
-            Ytrue = Y
-        else:
-            preds = torch.cat((preds, output))
-            Ytrue = torch.cat((Ytrue, Y))
-        total_loss += evaluateL2(output, Y).item()
-        total_loss_l1 += evaluateL1(output, Y).item()
-        n_samples += (output.size(0) * num_target_nodes)
-        i += 1
-
-    rse = math.sqrt(total_loss / n_samples)
-    rae = (total_loss_l1 / n_samples)
-
-    oni_pred = preds.data.cpu().numpy()
-    oni_Y = Ytrue.data.cpu().numpy()
-
-    oni_corr = np.corrcoef(oni_Y, oni_pred)[0, 1]
-    rmse_val = rmse(oni_Y, oni_pred)
-    r, p = pearsonr(oni_Y, oni_pred)
-    oni_stats = {"Corrcoef": oni_corr, "RMSE": rmse_val, "Pearson_r": r, "Pearson_p": p}
-    if return_oni_preds:
-        return rse, rae, oni_corr, oni_stats, oni_pred, oni_Y
-    else:
-        return rse, rae, oni_corr, oni_stats
 
 def train(data, XX, YY, model, criterion, optim, args):
     model.train()
@@ -147,7 +101,7 @@ def train(data, XX, YY, model, criterion, optim, args):
             if not args.train_all_nodes:
                 ty = ty[:, mask]
                 preds = preds[:, mask] if len(preds.shape) > 1 else preds[mask]
-            loss = criterion(preds, ty )
+            loss = criterion(preds, ty)
             loss.backward()
             total_loss += loss.item()
             n_samples += (preds.size(0) * num_target_nodes)
@@ -158,7 +112,7 @@ def train(data, XX, YY, model, criterion, optim, args):
 
 
 def main(args, adj=None, train_dates=("1871-01", "1972-12"), val_dates=("1973-01", "1983-12"),
-                 test_dates=("1984-01", "2020-09")):
+         test_dates=("1984-01", "2020-09")):
     device = torch.device(args.device)
     args.device = device
     torch.set_num_threads(3)
@@ -194,6 +148,7 @@ def main(args, adj=None, train_dates=("1871-01", "1972-12"), val_dates=("1973-01
     )
 
     # At any point you can hit Ctrl + C to break out of training early.
+    DataG = IndexLoader(args, test_set="GODAS", start_date="1984-01", end_date="2020-08", data_dir=args.data_dir)
     try:
         print('begin training')
         for epoch in range(1, args.epochs + 1):
