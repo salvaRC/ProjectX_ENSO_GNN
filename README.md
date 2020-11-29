@@ -9,5 +9,6 @@ Implemented using Python3 (3.7) with dependencies specified in requirements.txt,
 ``pip install -r requirements.txt``
 
 This should be enough for Pycharm, for command line stuff you'll probably need to then also run
+
 ``python setup.py install``.
 
