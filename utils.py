@@ -66,18 +66,27 @@ def get_index_mask(data, index, flattened_too=False, is_data_flattened=False):
     :param index: ONI or Nino3.4 or ICEN
     :return:
     """
-    lats, lons = get_index_region_bounds(index)
+    lats, lons = get_region_bounds(index)
     return cord_mask(data, lat=lats, lon=lons, flattened_too=flattened_too, is_flattened=is_data_flattened)
 
 
-def get_index_region_bounds(index):
+def get_region_bounds(index):
     if index.lower() in ["nino3.4", "oni"]:
         return (-5, 5), (190, 240)  # 170W-120W
     elif index.lower() == "icen":
         return (-10, 0), (270, 280)  # 90W-80W
+    elif index.lower() in ["all", "world"]:
+        return (-60, 60), (0, 360)  #
     else:
-        raise ValueError("Unknown index")
+        raise ValueError("Unknown region/index")
 
+
+def is_in_index_region(lat, lon, index="ONI"):
+    lat_bounds, lon_bounds = get_region_bounds(index=index)
+    if lat_bounds[0] <= lat <= lat_bounds[1]:
+        if lon_bounds[0] <= lon <= lon_bounds[1]:
+            return True
+    return False
 
 def oni_correlation_skill(true, preds, axis=1):
     """

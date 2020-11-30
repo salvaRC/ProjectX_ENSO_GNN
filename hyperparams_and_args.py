@@ -2,7 +2,7 @@ import argparse
 
 
 data_dir = r'C:/Users/salva/OneDrive/Documentos/Projects/ProjectX/Data/'
-data_dir = r'../Data/'
+#data_dir = r'../Data/'
 
 def get_argparser(experiment="ersstv5"):
     """
@@ -77,6 +77,7 @@ def get_argparser(experiment="ersstv5"):
         parser.add_argument("--finetune_with_cmip5_too", default=False, type=bool,
                             help="Whether too concatenate cmip5 with soda for fine tuning, or only use soda")
         parser.add_argument("--transfer_learning", type=bool, default=True)
+        parser.add_argument("--reload_pretrained_from", type=str, default=None)
     else:
         raise ValueError()
     parser.add_argument('--validation_frac', type=float, default=0.15, help='Validation set fraction')
