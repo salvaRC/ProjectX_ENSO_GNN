@@ -76,10 +76,11 @@ class IndexLoader:
                  godas_data='GODAS.input.36mn.1980_2015.nc',  # Input of GODAS data set
                  godas_label='GODAS.label.12mn_3mv.1982_2017.nc',  # Label of gods set
                  verbose=False,
-                 test_set="GODAS"
+                 test_set="GODAS",
+                 device=None
                  ):
         from utils import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
-        self.device = args.device
+        self.device = device or args.device
         self.horizon = args.horizon
         self.window = args.window
         self.n_nodes = args.num_nodes
@@ -91,26 +92,27 @@ class IndexLoader:
                                                  data_dir=data_dir + "GODAS/", sample_file=godas_data,
                                                  label_file=godas_label,
                                                  get_valid_nodes_mask=False, get_valid_coordinates=False)
-            GODAS = GODAS_X[:, :, :, cnn_mask], GODAS_Y
+            GODAS = GODAS_X[24:, :, :, cnn_mask], GODAS_Y[24:]  # start at 1984
+
         except AttributeError:
             _, _, GODAS = load_cnn_data(window=args.window, lead_months=args.horizon, lon_min=args.lon_min,
                                         lon_max=args.lon_max, lat_min=args.lat_min, lat_max=args.lat_max,
                                         data_dir=data_dir, use_heat_content=args.use_heat_content,
-                                        return_mask=False)
+                                        return_mask=False, truncate_GODAS=True)
             transfer = False
         if args.use_heat_content or test_set == "GODAS":
             self.dataset = "GODAS"
             if verbose:
                 print("Testing on unseen GODAS data...")
             self.test = torch.tensor(np.array(GODAS[0])).float(), torch.tensor(GODAS[1]).float()
-            self.semantic_time_steps = GODAS[0].attrs["time"]
+            self.semantic_time_steps = GODAS[0].attrs["time"][24:]  # start in 1984
 
         else:
             self.dataset = "ERSSTv5"
             if verbose:
                 print("Testing on unseen ERSSTv5 data...")
 
-            flattened_ssta = read_ssta(data_dir=args.data_dir, index=args.index,
+            flattened_ssta = read_ssta(data_dir=data_dir, index=args.index,
                                        resolution=args.resolution, stack_lon_lat=True,
                                        start_date=start_date, end_date=end_date,  # end date can be anything for eval.
                                        lon_min=args.lon_min, lon_max=args.lon_max,
