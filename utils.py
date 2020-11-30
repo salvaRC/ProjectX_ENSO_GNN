@@ -3,6 +3,7 @@ import xarray as xa
 from ninolearn.IO.read_processed import data_reader
 from sklearn.metrics import mean_squared_error
 
+
 def rmse(y, preds):
     """
     The root-mean-squarred error (RMSE) for a given observation and prediction.
@@ -17,6 +18,28 @@ def rmse(y, preds):
     :return: The RMSE value
     """
     return np.sqrt(mean_squared_error(y, preds))
+
+
+def season_to_int(season):
+    """
+    :param season: eg DJF for Dezember, January, February, etc.
+    """
+    dictio = {'DJF': 12,
+              'JFM': 1,
+              'FMA': 2,
+              'MAM': 3,
+              'AMJ': 4,
+              'MJJ': 5,
+              'JJA': 6,
+              'JAS': 7,
+              'ASO': 8,
+              'SON': 9,
+              'OND': 10,
+              'NDJ': 11,
+              "all": "all"
+              }
+    return dictio[season]
+
 
 def cord_mask(data: xa.DataArray, is_flattened=False, flattened_too=False, lat=(-5, 5), lon=(190, 240)):
     """
@@ -222,7 +245,8 @@ def reformat_cnn_data(lead_months=3, window=3, use_heat_content=False,
                                                                     ])
     if "CMIP5" not in label_file:
         X_all_target_mons.attrs["time"] = \
-            [pd.Timestamp("1982-01-01") + pd.DateOffset(months=d_mon) for d_mon in range(len(data.get_index("time"))*12)]
+            [pd.Timestamp("1982-01-01") + pd.DateOffset(months=d_mon) for d_mon in
+             range(len(data.get_index("time")) * 12)]
 
     X_all_target_mons.attrs["Lons"] = filtered_region.get_index('lon')
     X_all_target_mons.attrs["Lats"] = filtered_region.get_index('lat')
@@ -314,15 +338,18 @@ def load_cnn_data(lead_months=3, window=3, use_heat_content=False,
                                                   lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max,
                                                   data_dir=data_dir + "CMIP5_CNN/", sst_key="sst1",
                                                   sample_file=cmip5_data, label_file=cmip5_label,
-                                                  get_valid_nodes_mask=True, get_valid_coordinates=True, target_months=target_months)
+                                                  get_valid_nodes_mask=True, get_valid_coordinates=True,
+                                                  target_months=target_months)
     SODA, SODA_Y, m2 = reformat_cnn_data(lead_months=lead_months, window=window, use_heat_content=use_heat_content,
                                          lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max,
                                          data_dir=data_dir + "SODA/", sample_file=soda_data, label_file=soda_label,
-                                         get_valid_nodes_mask=True, get_valid_coordinates=False, target_months=target_months)
+                                         get_valid_nodes_mask=True, get_valid_coordinates=False,
+                                         target_months=target_months)
     GODAS, GODAS_Y, m3 = reformat_cnn_data(lead_months=lead_months, window=window, use_heat_content=use_heat_content,
                                            lon_min=lon_min, lon_max=lon_max, lat_min=lat_min, lat_max=lat_max,
                                            data_dir=data_dir + "GODAS/", sample_file=godas_data, label_file=godas_label,
-                                           get_valid_nodes_mask=True, get_valid_coordinates=False, target_months=target_months)
+                                           get_valid_nodes_mask=True, get_valid_coordinates=False,
+                                           target_months=target_months)
     if truncate_GODAS:
         start_1984 = 24 if target_months == "all" else 2
         GODAS, GODAS_Y, GODAS.attrs["time"] = GODAS[start_1984:], GODAS_Y[start_1984:], GODAS.attrs["time"][start_1984:]
