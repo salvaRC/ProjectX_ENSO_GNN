@@ -6,7 +6,7 @@ from torch.autograd import Variable
 class DataLoaderS(object):
     # train and valid is the ratio of training set and validation set. test = 1 - train - valid
     def __init__(self, cmip5, soda, godas, device, horizon, window, valid_split=0.1,
-                 transfer=True, **kwargs):
+                 transfer=True, concat_cmip5_and_soda=False, **kwargs):
         """
         n - length of time series (i.e. dataset size)
         m - number of nodes/grid cells (105 if using exactly the ONI region)
@@ -35,8 +35,11 @@ class DataLoaderS(object):
         self.valid = torch.tensor(sodaX[-first_val:]).float(), torch.tensor(soda[1][-first_val:]).float()
         self.test = torch.tensor(godasX).float(), torch.tensor(godas[1]).float()
         self.transfer = transfer
-        if not transfer:  # instead of transfer, concat the cmip5 and soda data
+        self.is_train_concat = concat_cmip5_and_soda
+        if concat_cmip5_and_soda:  # instead of transfer, concat the cmip5 and soda data
+            print("SODA AND CMIP5 for training")
             self.merge_transfer_and_train(cmip5X, cmip5[1])
+            self.T = self.train[0].shape[0]
 
     def __str__(self):
         string = f"Pre-training set of {self.pre_train[0].shape[0]} samples, " if self.transfer else ""
@@ -107,7 +110,7 @@ class IndexLoader:
             if verbose:
                 print("Testing on unseen ERSSTv5 data...")
 
-            flattened_ssta = read_ssta(data_dir=args.data_dir,index=args.index,
+            flattened_ssta = read_ssta(data_dir=args.data_dir, index=args.index,
                                        resolution=args.resolution, stack_lon_lat=True,
                                        start_date=start_date, end_date=end_date,  # end date can be anything for eval.
                                        lon_min=args.lon_min, lon_max=args.lon_max,
@@ -130,8 +133,8 @@ class IndexLoader:
             end = start + self.window
             X[start, 0, :, :] = torch.from_numpy(data[start:end, :])
             Y[start] = torch.tensor(np.mean(Y_i[self.mask]))
-        return [X, Y]
 
+        return [X, Y]
 
     def _batchify(self, data):
         Y_matrix = data[self.window + self.horizon - 1:, :]  # horizon = #time steps predicted in advance
