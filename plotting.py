@@ -2,11 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xa
+from utils import read_ssta, is_in_index_region
 from pandas.plotting import register_matplotlib_converters
-
 register_matplotlib_converters()
-
-from utils import read_ssta, get_index_region_bounds
 
 
 def transform(x):
@@ -15,15 +13,8 @@ def transform(x):
     return x
 
 
-def is_in_oni_region(lat, lon):
-    if -5 <= lat <= 5:
-        if 190 <= lon <= 240:
-            return True
-    return False
-
-
 def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, data_dir=None,
-                     save_to=None, plot_heatmap=True, from_or_to_ONI="from", set_title=True):
+                     save_to=None, plot_heatmap=True, from_or_to_ONI="from", set_title=True, region="ONI"):
     """
     The adaptively learnt edges by MTGNN are unidirectional!
     :param file_path: path to saved torch model
@@ -72,9 +63,9 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
             b_lat = coordinates[j][0]
             b_lon = coordinates[j][1]
 
-            if is_in_oni_region(a_lat, a_lon):
+            if is_in_index_region(a_lat, a_lon, index=region):
                 incoming_edge_heat.loc[b_lat, b_lon] += weight  # edge a -> b, where a is in ONI region
-            if is_in_oni_region(b_lat, b_lon):
+            if is_in_index_region(b_lat, b_lon, index=region):
                 outgoing_edge_heat.loc[a_lat, a_lon] += weight  # edge a -> b, where b is in ONI region
 
     fig = plt.figure()
@@ -90,8 +81,12 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
     maxlon = +179 + cm
     ax1.set_extent([minlon, maxlon, -55, 60], ccrs.PlateCarree())
 
-    title_to = "Heatmap of summed edge weights that point towards ONI region"
-    title_from = "Heatmap of summed edge weights that point out of the ONI region"
+    if region.lower() in ["all", "world"]:
+        title_to = f"Heatmap of summed incoming edge weights"
+        title_from = f"Heatmap of summed outgoing edge weights"
+    else:
+        title_to = f"Heatmap of summed edge weights that point towards {region} region"
+        title_from = f"Heatmap of summed edge weights that point out of the {region} region"
     if set_title:
         ax1.set_title(title_to) if from_or_to_ONI in ["both", "towards"] else ax1.set_title(title_from)
 
@@ -185,5 +180,4 @@ if __name__ == "__main__":
     from hyperparams_and_args import data_dir
 
     fi = "models/exp2/PRELU_all6lead_ONI_-40-40lats_0-360lons_3w2L2gcnDepth2dil_32bs0.1d0normed_prelu_100epPRETRAINED.pt"
-    fi = "models/exp2/PRELU_all3lead_ONI_-40-40lats_0-360lons_3w2L2gcnDepth2dil_32bs0.1d0normed_prelu_50epTRAIN-CONCAT.pt"
-    heatmap_of_edges(file_path=fi, data_dir=data_dir, from_or_to_ONI="from", set_title=False)
+    heatmap_of_edges(file_path=fi, data_dir=data_dir, from_or_to_ONI="from", set_title=False, region='all')
