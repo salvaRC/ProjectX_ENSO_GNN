@@ -77,7 +77,8 @@ class IndexLoader:
                  godas_label='GODAS.label.12mn_3mv.1982_2017.nc',  # Label of gods set
                  verbose=False,
                  test_set="GODAS",
-                 device=None
+                 device=None,
+                 ersstv5_to_cnn_format=False
                  ):
         from utils import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
         self.device = device or args.device
@@ -100,6 +101,7 @@ class IndexLoader:
                                         data_dir=data_dir, use_heat_content=args.use_heat_content,
                                         return_mask=False, truncate_GODAS=True)
             transfer = False
+            print(GODAS.shape)
         if args.use_heat_content or test_set == "GODAS":
             self.dataset = "GODAS"
             if verbose:
@@ -122,7 +124,10 @@ class IndexLoader:
             if transfer:
                 flattened_ssta = flattened_ssta[:, cnn_mask]
             _, self.mask = get_index_mask(flattened_ssta, args.index, flattened_too=True, is_data_flattened=True)
-            self.test = self._batchify(np.array(flattened_ssta))
+            if ersstv5_to_cnn_format:
+                self.test = self._batchify_index(np.array(flattened_ssta))
+            else:
+                self.test = self._batchify(np.array(flattened_ssta))
 
     def _batchify_index(self, data):
         Y_matrix = data[self.window + self.horizon - 1:]  # horizon = #time steps predicted in advance
