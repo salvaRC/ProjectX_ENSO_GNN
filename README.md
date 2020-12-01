@@ -18,4 +18,11 @@ This should be enough for Pycharm, for command line stuff you'll probably need t
 - ``python setup.py install``.
 
 
+## Models
+All reported models are saved [here](models).
 
+## Running the experiments
+- To run experiment 1 from scratch just rerun the [corresponding notebook](experiment1.ipynb).
+- To run experiment 2 from scratch/use transfer learning with CMIP5 run:
+    ``python transfer_learning_exp.py --horizon <#lead months> --transfer_epochs <e_1> --epochs <e_2>``
+      as well as any other combination of hyperparameters (settable, as above, via ``--parameter <value>``).

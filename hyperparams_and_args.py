@@ -69,7 +69,7 @@ def get_argparser(experiment="ersstv5"):
         parser.add_argument("--train_all_nodes", type=bool, default=False,
                             help="Whether to train on all nodes or only ONI region ones")
 
-        parser.add_argument('--save', type=str, default='model/exp1/', help='path to save the final model')
+        parser.add_argument('--save', type=str, default='models/exp1/', help='path to save the final model')
     elif experiment.lower() == "cnn_data":
         parser.add_argument("--use_heat_content", type=bool, default=False,
                             help="Whether to use heat content anomalies")
@@ -80,7 +80,7 @@ def get_argparser(experiment="ersstv5"):
         parser.add_argument("--transfer_learning", type=bool, default=True)
         parser.add_argument("--reload_pretrained_from", type=str, default=None)
 
-        parser.add_argument('--save', type=str, default='model/exp2', help='path to save the final model')
+        parser.add_argument('--save', type=str, default='models/exp2/', help='path to save the final model')
     else:
         raise ValueError()
     parser.add_argument('--validation_frac', type=float, default=0.15, help='Validation set fraction')
