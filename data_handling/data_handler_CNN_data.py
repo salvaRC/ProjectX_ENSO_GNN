@@ -101,7 +101,6 @@ class IndexLoader:
                                         data_dir=data_dir, use_heat_content=args.use_heat_content,
                                         return_mask=False, truncate_GODAS=True)
             transfer = False
-            print(GODAS.shape)
         if args.use_heat_content or test_set == "GODAS":
             self.dataset = "GODAS"
             if verbose:
