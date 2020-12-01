@@ -1,7 +1,9 @@
+# Data
+- Download the datasets from [this link](https://drive.google.com/drive/folders/15L2cvpAQv_c6c6gmJ8RnR2tQ_mHQR9Oz?usp=sharing)
+- **Overwrite [this file](hyperparams_and_args.py) so that ``data_dir`` correctly points towards your data directory** (with subdirs SODA, GODAS, etc.).
+
 # Environment setup
 - Git clone the repo 
-
-- **Overwrite [this file](hyperparams_and_args.py) so that ``data_dir`` correctly points towards your data directory.**
 
 - Implemented using Python3 (3.7) with dependencies specified in requirements.txt, install them in a clean conda environment: <br>
     - ``conda create --name projectx python=3.7`` <br>
