@@ -13,7 +13,7 @@ def transform(x):
     return x
 
 
-def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, data_dir=None,
+def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, data_dir=None, thresh=(0, 0),
                      save_to=None, plot_heatmap=True, from_or_to_ONI="from", set_title=True, region="ONI"):
     """
     The adaptively learnt edges by MTGNN are unidirectional!
@@ -73,6 +73,8 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
                 if is_in_index_region(b_lat, b_lon, index=region):
                     outgoing_edge_heat.loc[a_lat, a_lon] += weight  # edge a -> b, where b is in ONI region
 
+    incoming_edge_heat = xa.where(incoming_edge_heat < thresh[0], min_weight, incoming_edge_heat)
+    outgoing_edge_heat = xa.where(outgoing_edge_heat < thresh[1], min_weight, outgoing_edge_heat)
     fig = plt.figure()
     cm = 180
     from_or_to_ONI = from_or_to_ONI.lower()
@@ -124,6 +126,7 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
     ax1.coastlines()
     if from_or_to_ONI == "both":
         ax2.coastlines()
+
 
     if save_to is not None:
         plt.savefig(save_to, bbox_inches='tight')
