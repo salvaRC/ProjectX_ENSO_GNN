@@ -53,20 +53,25 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
     incoming_edge_heat = xa.DataArray(np.zeros((lat_len, lon_len)), coords=[("lat", lats), ("lon", lons)])
     outgoing_edge_heat = xa.DataArray(np.zeros((lat_len, lon_len)), coords=[("lat", lats), ("lon", lons)])
 
-    for i, neighbors in enumerate(adj):
-        for j, weight in enumerate(neighbors):
-            if weight < min_weight:
-                continue
+    if region.lower() in ["all", "world"]:
+        for i, (lat_i, lon_i) in enumerate(coordinates):
+            incoming_edge_heat.loc[lat_i, lon_i] = np.sum(adj[:, i])
+            outgoing_edge_heat.loc[lat_i, lon_i] = np.sum(adj[i, :])
+    else:
+        for i, neighbors in enumerate(adj):
+            for j, weight in enumerate(neighbors):
+                if weight < min_weight:
+                    continue
 
-            a_lat = coordinates[i][0]
-            a_lon = coordinates[i][1]
-            b_lat = coordinates[j][0]
-            b_lon = coordinates[j][1]
+                a_lat = coordinates[i][0]
+                a_lon = coordinates[i][1]
+                b_lat = coordinates[j][0]
+                b_lon = coordinates[j][1]
 
-            if is_in_index_region(a_lat, a_lon, index=region):
-                incoming_edge_heat.loc[b_lat, b_lon] += weight  # edge a -> b, where a is in ONI region
-            if is_in_index_region(b_lat, b_lon, index=region):
-                outgoing_edge_heat.loc[a_lat, a_lon] += weight  # edge a -> b, where b is in ONI region
+                if is_in_index_region(a_lat, a_lon, index=region):
+                    incoming_edge_heat.loc[b_lat, b_lon] += weight  # edge a -> b, where a is in ONI region
+                if is_in_index_region(b_lat, b_lon, index=region):
+                    outgoing_edge_heat.loc[a_lat, a_lon] += weight  # edge a -> b, where b is in ONI region
 
     fig = plt.figure()
     cm = 180
@@ -82,24 +87,24 @@ def heatmap_of_edges(file_path=None, model=None, min_weight=0.1, reader=None, da
     ax1.set_extent([minlon, maxlon, -55, 60], ccrs.PlateCarree())
 
     if region.lower() in ["all", "world"]:
-        title_to = f"Heatmap of summed incoming edge weights"
-        title_from = f"Heatmap of summed outgoing edge weights"
+        title1 = f"Heatmap of summed incoming edge weights"
+        title2 = f"Heatmap of summed outgoing edge weights"
     else:
-        title_to = f"Heatmap of summed edge weights that point towards {region} region"
-        title_from = f"Heatmap of summed edge weights that point out of the {region} region"
+        title1 = f"Heatmap of summed edge weights that come from {region} region"
+        title2 = f"Heatmap of summed edge weights that point towards {region} region"
     if set_title:
-        ax1.set_title(title_to) if from_or_to_ONI in ["both", "towards"] else ax1.set_title(title_from)
+        ax1.set_title(title1) if from_or_to_ONI in ["both", "from"] else ax1.set_title(title2)
 
-    if from_or_to_ONI == "towards":
-        loop_over = zip([ax1], [outgoing_edge_heat])
-    elif from_or_to_ONI == "from":
+    if from_or_to_ONI == "from":
         loop_over = zip([ax1], [incoming_edge_heat])
+    elif from_or_to_ONI == "towards":
+        loop_over = zip([ax1], [outgoing_edge_heat])
     else:
         ax2 = fig.add_subplot(gs[1, :], projection=ccrs.PlateCarree(central_longitude=cm))
         ax2.set_extent([minlon, maxlon, -55, 60], ccrs.PlateCarree())
         if set_title:
-            ax2.set_title(title_from)
-        loop_over = zip([ax1, ax2], [outgoing_edge_heat, incoming_edge_heat])
+            ax2.set_title(title2)
+        loop_over = zip([ax1, ax2], [incoming_edge_heat, outgoing_edge_heat])
 
     for ax, heat in loop_over:
         if plot_heatmap:
