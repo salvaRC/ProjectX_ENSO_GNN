@@ -82,9 +82,9 @@ def get_argparser(experiment="ersstv5"):
         raise ValueError()
     parser.add_argument('--validation_frac', type=float, default=0.15, help='Validation set fraction')
 
-    parser.add_argument('--lon_min', type=int, default=150, help='Longitude min. (Eastern)')
-    parser.add_argument('--lon_max', type=int, default=290, help='Longitude max. (Eastern)')
-    parser.add_argument('--lat_min', type=int, default=-40, help='Latitude min. (Southern)')
-    parser.add_argument('--lat_max', type=int, default=40, help='Latitude max. (Southern)')
+    parser.add_argument('--lon_min', type=int, default=190, help='Longitude min. (Eastern)')
+    parser.add_argument('--lon_max', type=int, default=240, help='Longitude max. (Eastern)')
+    parser.add_argument('--lat_min', type=int, default=-5, help='Latitude min. (Southern)')
+    parser.add_argument('--lat_max', type=int, default=5, help='Latitude max. (Southern)')
     parser.add_argument('--index', type=str, default="ONI", help='Which index to predict')
     return parser
