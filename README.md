@@ -24,5 +24,9 @@ All reported models are saved [here](models).
 ## Running the experiments
 - To run experiment 1 from scratch just rerun the [corresponding notebook](experiment1.ipynb).
 - To run experiment 2 from scratch/use transfer learning with CMIP5 run:
-    ``python transfer_learning_exp.py --horizon <#lead months> --transfer_epochs <e_1> --epochs <e_2>``
+    ``python transfer_learning_exp.py --horizon <#lead months> --transfer_epochs <e_1> --epochs <e_2> --lat_min -40 --lat_max 40 --lon_min 0 --lon_max 360``
       as well as any other combination of hyperparameters (settable, as above, via ``--parameter <value>``).
+      <br>
+      E.g., to rerun 6lead_ONI_-40-40lats_0-360lons_3w2L2gcnDepth2dil_32bs0.1d0normed_prelu_100epPRETRAINED_150epTRAIN-CONCAT.pt
+      you would do ``python transfer_learning_exp.py --horizon 6 --transfer_epochs 100 --epochs 150 --lat_min -40 --lat_max 40 --lon_min 0 --lon_max 360``
+      
