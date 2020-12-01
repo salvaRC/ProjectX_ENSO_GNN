@@ -1,4 +1,5 @@
-## This code has been build upon & adapted from the Ninolearn library, see below
+## This code has been build upon & adapted from the Ninolearn library, see below.
+Note that the longitude coordinates are in degrees East, which is why ONI region corresponds to 190-240.
 
 
 # NinoLearn
