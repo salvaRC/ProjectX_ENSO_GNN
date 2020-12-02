@@ -1,4 +1,6 @@
 # Graph Neural Networks for Improved El Nino Forecasting
+*Deep learning-based models have recently outperformed state-of-the-art seasonal forecasting models, such as for predicting El Nino-Southern Oscillation (ENSO).
+However, current deep learning models are based on convolutional neural networks which are difficult to interpret and can fail to model large-scale atmospheric patterns called teleconnections. We propose the first application of spatiotemporal graph neural networks (GNNs), that can model teleconnections for seasonal forecasting. Our GNN outperforms other state-of-the-art machine learning-based (ML) models for forecasts up to 3 month ahead. The explicit modeling of information flow via edges makes our model more interpretable, and our model indeed is shown to learn sensible edge weights that correlate with the ENSO anomaly pattern.*
 ## Data
 - Download the datasets from [this link](https://drive.google.com/drive/folders/15L2cvpAQv_c6c6gmJ8RnR2tQ_mHQR9Oz?usp=sharing)
 - **Overwrite [this file](hyperparams_and_args.py) so that ``data_dir`` correctly points towards your data directory** (with subdirs SODA, GODAS, etc.).
@@ -23,7 +25,7 @@ All reported models are saved [here](models).
 
 ## Running the experiments
 - To run experiment 1 from scratch just rerun the [corresponding notebook](experiment1.ipynb).
-- To run experiment 2 from scratch/use transfer learning with CMIP5 run:
+- To run experiment 2 from scratch/use transfer learning with CMIP5, run:
     ``python transfer_learning_exp.py --horizon <#lead months> --transfer_epochs <e_1> --epochs <e_2> --lat_min -40 --lat_max 40 --lon_min 0 --lon_max 360``
       as well as any other combination of hyperparameters (settable, as above, via ``--parameter <value>``).
       <br>
