@@ -32,3 +32,13 @@ All reported models are saved [here](models).
       E.g., to rerun 6lead_ONI_-40-40lats_0-360lons_3w2L2gcnDepth2dil_32bs0.1d0normed_prelu_100epPRETRAINED_150epTRAIN-CONCAT.pt
       you would do ``python transfer_learning_exp.py --horizon 6 --transfer_epochs 100 --epochs 150 --lat_min -40 --lat_max 40 --lon_min 0 --lon_max 360``
       
+## Enhanced Interpretability
+Besides the better inductive bias that a GNN encodes for large-scale phenomena like ENSO, it also is more interpretable than other deep learning methods.
+
+We show that our GNN learns meaningful edges, see plots of [exp2](experiment2.ipynb).
+Note how the one for 6 lead months closely ressembles the SSTAs ~6mon prior the extreme El Nino 2015/16:
+![Alt Text](https://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.EMC/.CMB/.GLOBAL/.Reyn_SmithOIv2/.monthly/.ssta/startcolormap/DATA/-5./5./RANGE/black/navy/blue/-5./VALUE/cyan/-0.5/VALUE/white/white/0.5/bandmax/yellow/0.5/VALUE/red/5./VALUE/firebrick/endcolormap/DATA/0.5/STEP/a-+++-a-++-a+X+Y+fig:+colors+nozero+contours+land+:fig+/T/last+24+sub/last/plotrange/X/20/380/plotrange/Y/-60/70/plotrange//plotaxislength+600+psdef//iftime+75+psdef//plotbordertop+40+psdef//plotborderbottom+40+psdef//XOVY+null+psdef//color_smoothing+null+psdef//antialias+true+psdef//mftime+75+psdef+.gif?T=May+2015+-+Oct+2015)
+
+This is the typical ENSO pattern, another one from 6mon prior the extreme 1997/98 el Nino:
+![Alt Text](https://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.EMC/.CMB/.GLOBAL/.Reyn_SmithOIv2/.monthly/.ssta/startcolormap/DATA/-5./5./RANGE/black/navy/blue/-5./VALUE/cyan/-0.5/VALUE/white/white/0.5/bandmax/yellow/0.5/VALUE/red/5./VALUE/firebrick/endcolormap/DATA/0.5/STEP/a-+++-a-++-a+X+Y+fig:+colors+nozero+contours+land+:fig+/T/last+24+sub/last/plotrange/X/20/380/plotrange/Y/-60/70/plotrange//plotaxislength+600+psdef//iftime+75+psdef//plotbordertop+40+psdef//plotborderbottom+40+psdef//XOVY+null+psdef//color_smoothing+null+psdef//antialias+true+psdef//mftime+75+psdef+.gif?T=May+1997+-+Oct+1997&plotaxislength=740
+)
