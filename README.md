@@ -42,3 +42,14 @@ Note how the one for 6 lead months closely ressembles the SSTAs ~6mon prior the 
 This is the typical ENSO pattern, another one from 6mon prior the extreme 1997/98 el Nino:
 ![Alt Text](https://iridl.ldeo.columbia.edu/SOURCES/.NOAA/.NCEP/.EMC/.CMB/.GLOBAL/.Reyn_SmithOIv2/.monthly/.ssta/startcolormap/DATA/-5./5./RANGE/black/navy/blue/-5./VALUE/cyan/-0.5/VALUE/white/white/0.5/bandmax/yellow/0.5/VALUE/red/5./VALUE/firebrick/endcolormap/DATA/0.5/STEP/a-+++-a-++-a+X+Y+fig:+colors+nozero+contours+land+:fig+/T/last+24+sub/last/plotrange/X/20/380/plotrange/Y/-60/70/plotrange//plotaxislength+600+psdef//iftime+75+psdef//plotbordertop+40+psdef//plotborderbottom+40+psdef//XOVY+null+psdef//color_smoothing+null+psdef//antialias+true+psdef//mftime+75+psdef+.gif?T=May+1997+-+Oct+1997&plotaxislength=740
 )
+
+## Citation
+Experiment 1 is discussed in this paper: https://arxiv.org/abs/2012.01598
+Please consider citing it if you find it, or the code, helpful. Thank you!
+
+    @article{cachay2020graph,
+      title={Graph Neural Networks for Improved El Ni$\backslash$\~{} no Forecasting},
+      author={Cachay, Salva R{\"u}hling and Erickson, Emma and Bucker, Arthur Fender C and Pokropek, Ernest and Potosnak, Willa and Osei, Salomey and L{\"u}tjens, Bj{\"o}rn},
+      journal={NeurIPS Tackling Climate Change with Machine Learning Workshop. arXiv preprint arXiv:2012.01598},
+      year={2020}
+    }
