@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from utils import read_ssta, get_index_mask
+from utilities.utilities import read_ssta, get_index_mask
 
 
 class DataLoaderS(object):

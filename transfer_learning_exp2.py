@@ -1,11 +1,11 @@
 from hyperparams_and_args import get_argparser
-from utils import load_cnn_data, get_filename, season_to_int
+from utilities.utilities import load_cnn_data, get_filename, season_to_int
 from GNN2.train_single_step_CNN_Data import main
 import torch
 import warnings
 warnings.filterwarnings("ignore")
 
-save_every_nth_model = 25
+save_every_nth_model = 50
 
 if __name__ == "__main__":
     parser = get_argparser(experiment="cnn_data")

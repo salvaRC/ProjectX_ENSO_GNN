@@ -5,20 +5,20 @@ from scipy.stats import pearsonr
 import numpy as np
 from GNN2.net import gtnet
 from GNN2.trainer import Optim
-from data_handling.data_handler_CNN_data import DataLoaderS
-from utils import rmse
+from data_handling.data_handler_CNN_data import data_loading
+from utilities.utilities import rmse
 
 
-def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds=False):
+def evaluate(dataloader, model, evaluateL2, evaluateL1, device, return_oni_preds=False):
     model.eval()
     total_loss = 0
     total_loss_l1 = 0
     preds = None
     Ytrue = None
 
-    i = 0
-    for X, Y in data.get_batches(XX, YY, args.batch_size, shuffle=False):
+    for i, (X, Y) in enumerate(dataloader):
         assert len(X.size()) == 4, "Expected X to have shape (batch_size, #channels, window, #nodes)"
+        X, Y = X.to(device), Y.to(device)
         X = X.transpose(2, 3)
         with torch.no_grad():
             output = model(X)
@@ -31,7 +31,6 @@ def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds
             Ytrue = torch.cat((Ytrue, Y))
         total_loss += evaluateL2(output, Y).item()
         total_loss_l1 += evaluateL1(output, Y).item()
-        i += 1
 
     mmse = total_loss / i
 
@@ -47,11 +46,11 @@ def evaluate(data, XX, YY, model, evaluateL2, evaluateL1, args, return_oni_preds
         return total_loss / i, rmse_val, oni_corr, oni_stats
 
 
-def train(data, XX, YY, model, criterion, optim, args, nth_step=100):
+def train(dataloader, model, criterion, optim, args, nth_step=100):
     model.train()
     total_loss = 0
-    iter = 0
-    for X, Y in data.get_batches(XX, YY, args.batch_size, shuffle=args.shuffle):
+    for iter, (X, Y, finetuning_scaling) in enumerate(dataloader):
+        X, Y, finetuning_scaling = X.to(args.device), Y.to(args.device), finetuning_scaling.to(args.device)
         model.zero_grad()
         assert len(X.size()) == 4, "Expected X to have shape (batch_size, #channels, window, #nodes)"
         X = X.transpose(2, 3)
@@ -70,7 +69,8 @@ def train(data, XX, YY, model, criterion, optim, args, nth_step=100):
             ty = Y  # [:, id]
             preds = model(tx, id)  # shape = (batch_size x _ x #nodes x _)
             preds = torch.squeeze(preds)
-            loss = criterion(preds, ty)
+            loss = (((preds - ty)*finetuning_scaling)**2).mean()
+            # loss = criterion(preds, ty) # * finetuning_scaling
             loss.backward()
 
             total_loss += loss.item()
@@ -78,11 +78,11 @@ def train(data, XX, YY, model, criterion, optim, args, nth_step=100):
 
         if iter % nth_step == 1:
             print('Iter:{:3d} | loss: {:.4f}'.format(iter, loss.item() / iter))
-        iter += 1
     return total_loss / iter
 
 
-def train_model(Data, model, train_data_name, criterion, optim, args, eval_L1, eval_L2, epochs, save_every_nth_model=100):
+def train_model(trainloader, valloader, testloader, model, train_data_name, criterion, optim, args, eval_L1, eval_L2, epochs,
+                save_every_nth_model=100):
     """
 
     :param Data: DataLoader object
@@ -93,16 +93,15 @@ def train_model(Data, model, train_data_name, criterion, optim, args, eval_L1, e
     """
     if train_data_name not in ["train", "pre_train"]:
         raise ValueError("Unknown data attribute, must be train or pre_train!")
-    nth_step = 250 if train_data_name == "train" else 1000
+    nth_step = 1000 #250 if train_data_name == "train" else 1000
     best_val = 10000000
     print("--" * 15, f'Begin {train_data_name}ing...')
-    X, Y = getattr(Data, train_data_name)[0], getattr(Data, train_data_name)[1]
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
-        train_loss = train(Data, X, Y, model, criterion, optim, args, nth_step=nth_step)
+        train_loss = train(trainloader, model, criterion, optim, args, nth_step=nth_step)
 
         val_loss, val_rmse, val_corr, oni_stats = \
-            evaluate(Data, Data.valid[0], Data.valid[1], model, eval_L2, eval_L1, args)
+            evaluate(valloader,  model, eval_L2, eval_L1, device=args.device)
         print('--> End of epoch {:3d} | time: {:5.2f}s | train_loss {:5.4f} | Val. stats: loss {:5.4f} | valid RMSE '
               '{:5.4f} | corr {:5.4f} | ONI corr {:5.4f} | ONI RMSE {:5.4f}'.format(epoch,
                                                                                     (time.time() - epoch_start_time),
@@ -121,24 +120,24 @@ def train_model(Data, model, train_data_name, criterion, optim, args, eval_L1, e
             with open(args.save.replace(".pt", f"_{epoch}EP.pt"), 'wb') as f:
                 torch.save(model, f)
 
-
         if epoch % 5 == 0:
             test_acc, test_rae, test_corr, oni_stats = \
-                evaluate(Data, Data.test[0], Data.test[1], model, eval_L2, eval_L1, args)
+                evaluate(testloader, model, eval_L2, eval_L1, device=args.device)
             print("-------> Test stats: rse {:5.4f} | rae {:5.4f} | corr {:5.4f} |"
                   " ONI corr {:5.4f} | ONI RMSE {:5.4f}"
                   .format(test_acc, test_rae, test_corr, oni_stats["Corrcoef"], oni_stats["RMSE"]), flush=True)
 
 
-def main(args, cmip5, soda, godas, transfer=True, model=None, save_every_nth_model=True):
+def main(args, cmip5, soda, godas, transfer=True, model=None, save_every_nth_model=200):
     device = torch.device(args.device)
     args.device = device
     torch.set_num_threads(3)
-    Data = DataLoaderS(cmip5, soda, godas, device=device, horizon=args.horizon, window=args.window,
-                       normalize=args.normalize, valid_split=args.validation_frac, transfer=transfer,
-                       concat_cmip5_and_soda=True)
-    args.num_nodes = Data.n_nodes
-    print(Data, '\n')
+    args.num_nodes = soda[0].shape[3]
+    assert args.num_nodes == cmip5[0].shape[3] and args.num_nodes == godas[0].shape[3]
+    print(f'Inferred {args.num_nodes} nodes from the data.\n')
+    trainloader, valloader, testloader = \
+        data_loading(cmip5, soda, godas, batch_size=args.batch_size, valid_split=args.validation_frac,
+                     concat_cmip5_and_soda=True, scale_finetuning_loss=args.scale_SODA_loss)
     if model is None:
         model = gtnet(args.gcn_true, args.adaptive_edges, args.gcn_depth, args.num_nodes, device, args,
                       predefined_A=None, dropout=args.dropout, subgraph_size=args.subgraph_size,
@@ -165,36 +164,24 @@ def main(args, cmip5, soda, godas, transfer=True, model=None, save_every_nth_mod
     )
 
     # At any point you can hit Ctrl + C to break out of training early.
-    save_model_to = args.save
+    args.save = args.save.replace(".pt", f"_{args.epochs}epTRAIN-CONCAT.pt")
     try:
-        if transfer:
-            args.save = transfer_save = save_model_to.replace(".pt", f"_{args.transfer_epochs}epPRETRAINED.pt")
-            try:
-                train_model(Data, model, "pre_train", criterion, optim, args, evaluateL1, evaluateL2,
-                            args.transfer_epochs, save_every_nth_model=save_every_nth_model)
-                # After training with CMIP5, reload the best (w.r.t to validation rmse) performing model:
-                with open(args.save, 'rb') as f:
-                    model = torch.load(f).to(device)
-            except KeyboardInterrupt:
-                print('-' * 89)
-                print('Exiting from pre-training early')
-
-        args.save = save_model_to.replace(".pt", f"_{args.epochs}epTRAIN-CONCAT.pt")
-        train_model(Data, model, "train", criterion, optim, args, evaluateL1, evaluateL2, args.epochs, save_every_nth_model=save_every_nth_model)
+        train_model(trainloader, valloader, testloader, model, "train",
+                    criterion, optim, args, evaluateL1, evaluateL2, epochs=args.epochs, save_every_nth_model=save_every_nth_model)
     except KeyboardInterrupt:
         print('-' * 89)
         print('Exiting from training early')
 
     # Load the best saved model.
-    loop_over = zip([transfer_save, args.save], ["TRANSFER", "BEST"]) if transfer else (args.save, "BEST")
+    loop_over = (args.save, "BEST")
     for saved, title in loop_over:
         with open(saved, 'rb') as f:
             model = torch.load(f).to(device)
 
         val_acc, val_rae, val_corr, val_oni = \
-            evaluate(Data, Data.valid[0], Data.valid[1], model, evaluateL2, evaluateL1, args)
+            evaluate(valloader, model, evaluateL2, evaluateL1, device=args.device)
         test_acc, test_rae, test_corr, oni_stats = \
-            evaluate(Data, Data.test[0], Data.test[1], model, evaluateL2, evaluateL1, args)
+            evaluate(testloader, model, evaluateL2, evaluateL1, device=args.device)
         print(
             f"+++++++++++++++++++++  {title} MODEL STATS (best w.r.t to validation RMSE): +++++++++++++++++++++++++++++++")
         print("-------> Valid stats: rse {:5.4f} | rae {:5.4f} | corr {:5.4f} |"

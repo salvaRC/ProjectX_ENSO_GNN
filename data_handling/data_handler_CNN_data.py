@@ -1,74 +1,60 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
+from torch.utils.data import DataLoader
 
 
-class DataLoaderS(object):
-    # train and valid is the ratio of training set and validation set. test = 1 - train - valid
-    def __init__(self, cmip5, soda, godas, device, horizon, window, valid_split=0.1,
-                 transfer=True, concat_cmip5_and_soda=False, **kwargs):
-        """
-        n - length of time series (i.e. dataset size)
-        m - number of nodes/grid cells (105 if using exactly the ONI region)
-        :param file_name: Omitted if data is not None (e.g. if you use the datareader from ninolearn, as is enso_mtgnn.py)
-        :param train: fraction to use for training
-        :param valid: fraction to use for validation
-        :param device: which device to run on (e.g. "cpu" or "cuda:0", ...)
-        :param horizon: self.h - How many timesteps in advance to predict
-        :param window: self.P - How many timesteps to use for prediction
-        :param normalize: Valid: 0 (data is used as is), 1, 2,..,6, "EEMD" (will run node-wise EEMD, can be slow)
-        """
-        self.window = window
-        self.h = horizon
-        self.device = device
-        self.T, self.channels, w, self.n_nodes = soda[0].shape  # T=#time series, m=#nodes
-        assert w == window, f"Data shape {soda[0].shape} not consistent with argument window={window}"
-        self.normalize = -1
-        sodaX = np.array(soda[0]) if not isinstance(soda[0], np.ndarray) else soda[0]
-        cmip5X = np.array(cmip5[0]) if not isinstance(cmip5[0], np.ndarray) else cmip5[0]
-        godasX = np.array(godas[0]) if not isinstance(godas[0], np.ndarray) else godas[0]
-        if transfer:
-            self.pre_train = torch.tensor(cmip5X).float(), torch.tensor(cmip5[1]).float()
+class ENSO_Dataset(torch.utils.data.Dataset):
+    def __init__(self, X, labels):
+        self.X = torch.tensor(X).float()
+        self.labels = torch.tensor(labels).float()
 
-        first_val = int(valid_split * len(soda[0]))
-        self.train = [torch.tensor(sodaX[:-first_val]).float(), torch.tensor(soda[1][:-first_val]).float()]
-        self.valid = torch.tensor(sodaX[-first_val:]).float(), torch.tensor(soda[1][-first_val:]).float()
-        self.test = torch.tensor(godasX).float(), torch.tensor(godas[1]).float()
-        self.transfer = transfer
-        self.is_train_concat = concat_cmip5_and_soda
-        if concat_cmip5_and_soda:  # instead of transfer, concat the cmip5 and soda data
-            print("SODA AND CMIP5 for training")
-            self.merge_transfer_and_train(cmip5X, cmip5[1])
-            self.T = self.train[0].shape[0]
+    def __getitem__(self, i):
+        return self.X[i], self.labels[i]
 
-    def __str__(self):
-        string = f"Pre-training set of {self.pre_train[0].shape[0]} samples, " if self.transfer else ""
-        string += f"Training, Validation, Test samples = {self.T}, {self.valid[0].shape[0]}, {self.test[0].shape[0]}, " \
-                  f"#nodes = {self.n_nodes}, #channels = {self.channels}, " \
-                  f"Predicting {self.h} time steps in advance using {self.window} time steps --- CNN DATA used"
-        return string
+    def __len__(self):
+        return self.X.shape[0]
 
-    def merge_transfer_and_train(self, transfer_data, transfer_labels):
-        transfer_data, transfer_labels = torch.tensor(transfer_data).float(), torch.tensor(transfer_labels).float()
-        self.train[0] = torch.cat((transfer_data, self.train[0]), dim=0)
-        self.train[1] = torch.cat((transfer_labels, self.train[1]), dim=0)
 
-    def get_batches(self, inputs, targets, batch_size, shuffle=True):
-        length = len(inputs)
-        if shuffle:
-            index = torch.randperm(length)
-        else:
-            index = torch.LongTensor(range(length))
-        start_idx = 0
-        while start_idx < length:
-            end_idx = min(length, start_idx + batch_size)
-            excerpt = index[start_idx:end_idx]
-            X = inputs[excerpt]
-            Y = targets[excerpt]
-            X = X.to(self.device)
-            Y = Y.to(self.device)
-            yield Variable(X), Variable(Y)
-            start_idx += batch_size
+class ENSO_Train_Dataset(torch.utils.data.Dataset):
+    def __init__(self, X, labels, finetune_on):
+        self.X = torch.tensor(X).float()
+        self.labels = torch.tensor(labels).float()
+        self.finetune_on = torch.tensor(finetune_on).float()
+
+    def __getitem__(self, i):
+        return self.X[i], self.labels[i], self.finetune_on[i]
+
+    def __len__(self):
+        return self.X.shape[0]
+
+
+def data_loading(cmip5, soda, godas, batch_size, valid_split=0.1,
+                 concat_cmip5_and_soda=False, shuffle_training=True, scale_finetuning_loss=3.0):
+    """
+     n - length of time series (i.e. dataset size)
+     m - number of nodes/grid cells (105 if using exactly the ONI region)
+    """
+    sodaX = np.array(soda[0]) if not isinstance(soda[0], np.ndarray) else soda[0]
+    cmip5X = np.array(cmip5[0]) if not isinstance(cmip5[0], np.ndarray) else cmip5[0]
+    godasX = np.array(godas[0]) if not isinstance(godas[0], np.ndarray) else godas[0]
+
+    first_val = int(valid_split * len(soda[0]))
+    trainX, trainY = sodaX[:-first_val], soda[1][:-first_val]
+    if concat_cmip5_and_soda:  # instead of transfer, concat the cmip5 and soda data
+        print("SODA AND CMIP5 for training")
+        is_SODA = [1.0 for _ in range(cmip5X.shape[0])] + [scale_finetuning_loss for _ in range(trainX.shape[0])]
+        trainX = np.concatenate((cmip5X, trainX), axis=0)
+        trainY = np.concatenate((cmip5[1], trainY), axis=0)
+        trainset = ENSO_Train_Dataset(trainX, trainY, finetune_on=np.array(is_SODA, dtype=np.float))
+    else:
+        print("ONLY SODA FOR TRAINING, CMIP5 WAS IGNORED")
+        trainset = ENSO_Dataset(trainX, trainY)
+    valset = ENSO_Dataset(sodaX[-first_val:], soda[1][-first_val:])
+    testset = ENSO_Dataset(godasX, godas[1])
+    return DataLoader(trainset, batch_size=batch_size, shuffle=shuffle_training),\
+           DataLoader(valset, batch_size=batch_size, shuffle=False), \
+           DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 
 class IndexLoader:
@@ -80,7 +66,7 @@ class IndexLoader:
                  device=None,
                  ersstv5_to_cnn_format=False
                  ):
-        from utils import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
+        from utilities.utilities import read_ssta, get_index_mask, load_cnn_data, reformat_cnn_data
         self.device = device or args.device
         self.horizon = args.horizon
         self.window = args.window
@@ -172,3 +158,73 @@ class IndexLoader:
             Y = Y.to(self.device)
             yield Variable(X), Variable(Y)
             start_idx += batch_size
+
+
+'''
+class DataLoaderS(object):
+    # train and valid is the ratio of training set and validation set. test = 1 - train - valid
+    def __init__(self, cmip5, soda, godas, device, horizon, window, valid_split=0.1,
+                 transfer=True, concat_cmip5_and_soda=False, **kwargs):
+        """
+        n - length of time series (i.e. dataset size)
+        m - number of nodes/grid cells (105 if using exactly the ONI region)
+        :param file_name: Omitted if data is not None (e.g. if you use the datareader from ninolearn, as is enso_mtgnn.py)
+        :param train: fraction to use for training
+        :param valid: fraction to use for validation
+        :param device: which device to run on (e.g. "cpu" or "cuda:0", ...)
+        :param horizon: self.h - How many timesteps in advance to predict
+        :param window: self.P - How many timesteps to use for prediction
+        :param normalize: Valid: 0 (data is used as is), 1, 2,..,6, "EEMD" (will run node-wise EEMD, can be slow)
+        """
+        self.window = window
+        self.h = horizon
+        self.device = device
+        self.T, self.channels, w, self.n_nodes = soda[0].shape  # T=#time series, m=#nodes
+        assert w == window, f"Data shape {soda[0].shape} not consistent with argument window={window}"
+        self.normalize = -1
+        sodaX = np.array(soda[0]) if not isinstance(soda[0], np.ndarray) else soda[0]
+        cmip5X = np.array(cmip5[0]) if not isinstance(cmip5[0], np.ndarray) else cmip5[0]
+        godasX = np.array(godas[0]) if not isinstance(godas[0], np.ndarray) else godas[0]
+        if transfer:
+            self.pre_train = torch.tensor(cmip5X).float(), torch.tensor(cmip5[1]).float()
+
+        first_val = int(valid_split * len(soda[0]))
+        self.train = [torch.tensor(sodaX[:-first_val]).float(), torch.tensor(soda[1][:-first_val]).float()]
+        self.valid = torch.tensor(sodaX[-first_val:]).float(), torch.tensor(soda[1][-first_val:]).float()
+        self.test = torch.tensor(godasX).float(), torch.tensor(godas[1]).float()
+        self.transfer = transfer
+        self.is_train_concat = concat_cmip5_and_soda
+        if concat_cmip5_and_soda:  # instead of transfer, concat the cmip5 and soda data
+            print("SODA AND CMIP5 for training")
+            self.merge_transfer_and_train(cmip5X, cmip5[1])
+            self.T = self.train[0].shape[0]
+
+    def __str__(self):
+        string = f"Pre-training set of {self.pre_train[0].shape[0]} samples, " if self.transfer else ""
+        string += f"Training, Validation, Test samples = {self.T}, {self.valid[0].shape[0]}, {self.test[0].shape[0]}, " \
+                  f"#nodes = {self.n_nodes}, #channels = {self.channels}, " \
+                  f"Predicting {self.h} time steps in advance using {self.window} time steps --- CNN DATA used"
+        return string
+
+    def merge_transfer_and_train(self, transfer_data, transfer_labels):
+        transfer_data, transfer_labels = torch.tensor(transfer_data).float(), torch.tensor(transfer_labels).float()
+        self.train[0] = torch.cat((transfer_data, self.train[0]), dim=0)
+        self.train[1] = torch.cat((transfer_labels, self.train[1]), dim=0)
+
+    def get_batches(self, inputs, targets, batch_size, shuffle=True):
+        length = len(inputs)
+        if shuffle:
+            index = torch.randperm(length)
+        else:
+            index = torch.LongTensor(range(length))
+        start_idx = 0
+        while start_idx < length:
+            end_idx = min(length, start_idx + batch_size)
+            excerpt = index[start_idx:end_idx]
+            X = inputs[excerpt]
+            Y = targets[excerpt]
+            X = X.to(self.device)
+            Y = Y.to(self.device)
+            yield Variable(X), Variable(Y)
+            start_idx += batch_size
+'''

@@ -75,11 +75,11 @@ def get_argparser(experiment="ersstv5"):
                             help="Whether to use heat content anomalies")
         parser.add_argument("--target_month", default="all", type=str,
                             help="Which target to have, either 'all' or a season like 'DJF'")
-        parser.add_argument("--finetune_with_cmip5_too", default=False, type=bool,
+        parser.add_argument("--finetune_with_cmip5_too", default=True, type=bool,
                             help="Whether too concatenate cmip5 with soda for fine tuning, or only use soda")
         parser.add_argument("--transfer_learning", type=bool, default=True)
         parser.add_argument("--reload_pretrained_from", type=str, default=None)
-
+        parser.add_argument("--scale_SODA_loss", type=float, default=1.0)
         parser.add_argument('--save', type=str, default='models/exp2/', help='path to save the final model')
     else:
         raise ValueError()
